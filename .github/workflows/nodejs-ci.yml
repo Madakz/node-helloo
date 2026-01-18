@@ -1,13 +1,11 @@
-name: Node.js CI
+name: Node.js CI/CD to AWS Elastic Beanstalk
 
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,10 +15,24 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Install dependencies
         run: npm install
 
       - name: Run tests
         run: npm test --if-present
+
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x "*.git*"
+
+      - name: Deploy to AWS Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: my-node-js-app
+          environment_name: My-node-js-app-env 
+          region: us-east-2
+          version_label: ${{ github.sha }}
+          deployment_package: deploy.zip
